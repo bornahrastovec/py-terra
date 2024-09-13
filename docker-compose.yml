@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+  hello:
+    build:
+      context: .
+      dockerfile: Dockerfile.hello
+    container_name: hello
+    environment:
+      - RABBIT_HOST=rabbitmq
+    ports:
+      - "5000:5000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+  receive:
+    build:
+      context: .
+      dockerfile: Dockerfile.receive
+    container_name: receive
+    environment:
+      - RABBIT_HOST=rabbitmq
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    command: python receive.py
